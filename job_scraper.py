@@ -39,6 +39,14 @@ job_scraper_log.addHandler(ch)
 # Set up static global variables
 BASE_URL = "https://www.linkedin.com/jobs/search/"
 
+# Get .env file path
+env_file_path = os.path.join(os.path.dirname(__file__), ".env")
+# Load environment variables from .env file
+# if os.path.exists(env_file_path):
+#     from dotenv import load_dotenv
+
+#     load_dotenv(env_file_path)
+
 
 class LinkedInJobScraper:
     def __init__(self) -> None:
@@ -347,11 +355,15 @@ if __name__ == "__main__":
         job_scraper_log.warning("No jobs scraped today. Skipping CSV save and email.")
         sys.exit(0)
     # 8) Set up the email notifier instance
+    sender_email = os.environ.get("SENDER_EMAIL", "").strip()
+    sender_password = os.environ.get("SENDER_PASSWORD", "").strip()
+    recipient_email = os.environ.get("RECIPIENT_EMAIL", "").strip()
+
     notifier = EmailNotifier(
         smtp_server="smtp.web.de",
         smtp_port=587,
-        sender_email=os.environ.get("SENDER_EMAIL"),
-        sender_password=os.environ.get("SENDER_PASSWORD"),
+        sender_email=sender_email,
+        sender_password=sender_password,
     )
     # 9) Transform the pandas Dataframe to html table to be properly displayed in the email body
     jobs_table = jobs_df.to_html(index=False)
@@ -366,7 +378,7 @@ if __name__ == "__main__":
     """
     # 10) Send the email
     notifier.send_email(
-        recipient_email=os.environ.get("RECIPIENT_EMAIL"),
+        recipient_email=recipient_email,
         subject=f"LinkedIn Job Listings for day: {today}",
         body=email_body,
         attachments=[os.path.join(file_path, filename)],

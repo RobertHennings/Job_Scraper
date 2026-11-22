@@ -3,7 +3,7 @@ import mimetypes
 from pathlib import Path
 import smtplib
 import time
-from collections.abc import Sequence
+from typing import List
 from datetime import datetime, timezone
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -65,9 +65,6 @@ class EmailNotifier:
             ValueError: If the email address is malformed or contains line breaks.
             ValueError: If the email address is not valid.
         """
-        if "\r" in address or "\n" in address:
-            raise ValueError(f"{field_name} must not contain line breaks")
-
         _, parsed_address = parseaddr(address)
         if parsed_address != address or "@" not in parsed_address:
             raise ValueError(f"{field_name} is not a valid email address")
@@ -90,9 +87,10 @@ class EmailNotifier:
         recipient_email: str,
         subject: str,
         body: str,
-        attachments: Sequence[str | Path] | None = None,
+        attachments: List[str],
         retry_count: int = 3,
         retry_delay: int = 5,
+        show_adresses: bool = False,
     ) -> None:
         """Send a plain-text email notification.
 
@@ -103,6 +101,7 @@ class EmailNotifier:
             attachments (Sequence[str | Path], optional): File paths to attach.
             retry_count (int, optional): The number of times to retry sending the email in case of failure. Defaults to 3.
             retry_delay (int, optional): The delay in seconds between retries. Defaults to 5
+            show_adresses (bool, optional): Whether to show the email addresses in the log. Defaults to False.
         """
         self._validate_email_address(
             address=recipient_email, field_name="recipient_email"
@@ -146,23 +145,41 @@ class EmailNotifier:
                     notifier_log.info("Logging in to SMTP server.")
                     server.login(self.sender_email, self.sender_password)
                     server.send_message(message)
-                notifier_log.info(f"Email sent to {recipient_email}")
+                if show_adresses:
+                    notifier_log.info(f"Email sent to {recipient_email}")
+                else:
+                    notifier_log.info("Email sent successfully.")
                 return  # Exit the function if email is sent successfully
             except (OSError, smtplib.SMTPException) as e:
-                notifier_log.warning(
-                    f"Attempt {attempt + 1}: Failed to send email to {recipient_email}. Error: {str(e)}"
-                )
+                if show_adresses:
+                    notifier_log.warning(
+                        f"Attempt {attempt + 1}: Failed to send email to {recipient_email}. Error: {str(e)}"
+                    )
+                else:
+                    notifier_log.warning(
+                        f"Attempt {attempt + 1}: Failed to send email. Error: {str(e)}"
+                    )
                 if attempt < retry_count - 1:
                     notifier_log.info(f"Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                 else:
-                    notifier_log.error(
-                        f"Failed to send email to {recipient_email} after {retry_count} attempts"
-                    )
+                    if show_adresses:
+                        notifier_log.error(
+                            f"Failed to send email to {recipient_email} after {retry_count} attempts"
+                        )
+                    else:
+                        notifier_log.error(
+                            f"Failed to send email after {retry_count} attempts"
+                        )
                     self._validate_email_address(
                         address=recipient_email, field_name="recipient_email"
                     )
-                    notifier_log.exception(
-                        f"Failed to send email to {recipient_email} after {retry_count} attempts"
-                    )
+                    if show_adresses:
+                        notifier_log.error(
+                            f"Failed to send email to {recipient_email} after {retry_count} attempts"
+                        )
+                    else:
+                        notifier_log.error(
+                            f"Failed to send email after {retry_count} attempts"
+                        )
                     raise
