@@ -332,10 +332,10 @@ if __name__ == "__main__":
     jobs_df = scraper.get_jobs_df()
     # 6) Save the jobs DataFrame to CSV
     today = dt.datetime.now().strftime("%Y-%m-%d")
-    os.makedirs("Job_Scraper", exist_ok=True)
+    filename = rf"linkedin_jobs_{today}.csv"
     scraper.save_to_csv(
-        file_path=r"Job_Scraper",
-        filename=rf"linkedin_jobs_{today}.csv",
+        file_path=r".",
+        filename=filename,
     )
     # 7) Close the scraper
     scraper.close()
@@ -362,5 +362,5 @@ if __name__ == "__main__":
         recipient_email=os.environ.get("RECIPIENT_EMAIL"),
         subject=f"LinkedIn Job Listings for day: {today}",
         body=email_body,
-        attachments=[rf"Job_Scraper/linkedin_jobs_{today}.csv"],
+        attachments=[filename],
     )
