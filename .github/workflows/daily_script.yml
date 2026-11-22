@@ -4,6 +4,8 @@ on:
   schedule:
     # Runs every day at 07:00 UTC (08:00 CET / 09:00 CEST in Germany)
     - cron: "0 8 * * *"
+    # Add another run at 20:10 german local time (19:10 UTC) to catch any new job listings in the evening
+    - cron: "10 19 * * *"
   workflow_dispatch:
 
 jobs:
