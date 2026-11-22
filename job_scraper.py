@@ -10,6 +10,7 @@ import time
 import os
 import pandas as pd
 import datetime as dt
+import sys
 
 # Import the EmailNotifier class from email_notifier.py
 from email_notifier import EmailNotifier
@@ -80,7 +81,7 @@ class LinkedInJobScraper:
                 time.sleep(2)
 
                 try:
-                    WebDriverWait(self.driver, 10).until(
+                    WebDriverWait(self.driver, 20).until(
                         EC.presence_of_all_elements_located(
                             (By.CLASS_NAME, "base-card")
                         )
@@ -272,7 +273,7 @@ class LinkedInJobScraper:
         if not self.jobs:
             job_scraper_log.error("No jobs found")
             return
-        full_file_path = rf"{file_path}\{filename}"
+        full_file_path = os.path.join(file_path, filename) if file_path else filename
         job_scraper_log.info(
             f"Saving file: {filename} under file path: {file_path}\nFull file path: {full_file_path}"
         )
@@ -333,12 +334,18 @@ if __name__ == "__main__":
     # 6) Save the jobs DataFrame to CSV
     today = dt.datetime.now().strftime("%Y-%m-%d")
     filename = rf"linkedin_jobs_{today}.csv"
+    file_path = r"Job_Scraper"
+    os.makedirs(file_path, exist_ok=True)
     scraper.save_to_csv(
-        file_path=r".",
+        file_path=file_path,
         filename=filename,
     )
     # 7) Close the scraper
     scraper.close()
+
+    if jobs_df.empty:
+        job_scraper_log.warning("No jobs scraped today. Skipping CSV save and email.")
+        sys.exit(0)
     # 8) Set up the email notifier instance
     notifier = EmailNotifier(
         smtp_server="smtp.web.de",
@@ -362,5 +369,5 @@ if __name__ == "__main__":
         recipient_email=os.environ.get("RECIPIENT_EMAIL"),
         subject=f"LinkedIn Job Listings for day: {today}",
         body=email_body,
-        attachments=[filename],
+        attachments=[os.path.join(file_path, filename)],
     )
