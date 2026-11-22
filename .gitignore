@@ -1,0 +1,4 @@
+# ################## Python related stuff
+__pycache__
+# ################## Mac related stuff
+.DS_Store
