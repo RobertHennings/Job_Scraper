@@ -360,7 +360,8 @@ if __name__ == "__main__":
     recipient_email = os.environ.get("RECIPIENT_EMAIL", "").strip()
 
     notifier = EmailNotifier(
-        smtp_server="smtp.web.de",
+        # smtp_server="smtp.web.de",
+        smtp_server="://gmail.com",
         smtp_port=587,
         sender_email=sender_email,
         sender_password=sender_password,
