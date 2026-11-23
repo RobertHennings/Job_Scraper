@@ -2,6 +2,7 @@ name: Daily LinkedIn Job Scraper
 
 on:
   schedule:
+    - cron: "*/5 * * * *" # Every 5 minutes
     # Runs every day at 07:13 UTC (08:13 CET / 09:13 CEST in Germany)
     - cron: "13 7 * * *"
     # Temporary control run at 10:20 CET (09:20 UTC)
