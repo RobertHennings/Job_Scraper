@@ -2,10 +2,10 @@ name: Daily LinkedIn Job Scraper
 
 on:
   schedule:
-    # Runs every day at 07:00 UTC (08:00 CET / 09:00 CEST in Germany)
-    - cron: "0 8 * * *"
-    # Add another run at 20:10 german local time (19:10 UTC) to catch any new job listings in the evening
-    # - cron: "10 19 * * *"
+    # Runs every day at 07:13 UTC (08:13 CET / 09:13 CEST in Germany)
+    - cron: "13 7 * * *"
+    # Temporary control run at 10:20 CET (09:20 UTC)
+    - cron: "20 9 * * *"
   workflow_dispatch:
 
 jobs:
