@@ -3,11 +3,6 @@ name: Daily LinkedIn Job Scraper
 on:
   schedule:
     - cron: "*/5 * * * *" # Every 5 minutes
-    # Runs every day at 07:13 UTC (08:13 CET / 09:13 CEST in Germany)
-    - cron: "13 7 * * *"
-    # Temporary control run at 10:20 CET (09:20 UTC)
-    - cron: "20 9 * * *"
-    - cron: "10 9 * * *"
   workflow_dispatch:
 
 jobs:
@@ -22,7 +17,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Chrome (for Selenium/Browser scraping)
+      - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
       - name: Install Python dependencies
@@ -36,3 +31,10 @@ jobs:
           SENDER_PASSWORD: ${{ secrets.SENDER_PASSWORD }}
           RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}
         run: python job_scraper.py
+
+      - name: Debug Check Trigger
+        run: |
+          echo "Event name: $GITHUB_EVENT_NAME"
+          echo "Workflow run ID: $GITHUB_RUN_ID"
+          echo "Current time (UTC): $(date -u)"
+          echo "Current time (local): $(date)"
