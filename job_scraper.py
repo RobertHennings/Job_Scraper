@@ -5,9 +5,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
+from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
 import time
 import os
+import re
 import pandas as pd
 import datetime as dt
 import sys
@@ -179,62 +181,364 @@ class LinkedInJobScraper:
                     job_scraper_log.error(f"Error scraping: {e}")
         job_scraper_log.info(f"Scraping complete. Total jobs found: {len(self.jobs)}")
 
+    # def _scrape_job_details(self, job_url: str) -> Dict[str, str]:
+    #     """Visit an individual job posting page and extract additional metadata.
+
+    #     Args:
+    #         job_url (str): The URL of the individual job posting.
+
+    #     Returns:
+    #         Dict[str, str]: A dictionary containing additional job details such as description, seniority level, employment type, job function, industries, and number of applicants.
+    #     """
+    #     details = {}
+    #     try:
+    #         job_scraper_log.info(f"Loading Job Details for Job URL: {job_url}")
+    #         self.driver.get(job_url)
+    #         time.sleep(1.5)
+
+    #         soup = BeautifulSoup(self.driver.page_source, "html.parser")
+
+    #         # Full description
+    #         desc = soup.find("div", class_="show-more-less-html__markup")
+    #         if desc:
+    #             details["description"] = desc.get_text(separator="\n").strip()
+
+    #         # Criteria list (seniority, employment type, job function, industries)
+    #         criteria_items = soup.find_all(
+    #             "li", class_="description__job-criteria-item"
+    #         )
+    #         criteria_mapping = {
+    #             "Seniority level": "seniority_level",
+    #             "Employment type": "employment_type",
+    #             "Job function": "job_function",
+    #             "Industries": "industries",
+    #         }
+    #         for item in criteria_items:
+    #             header = item.find(
+    #                 "h3",
+    #                 class_="description__job-criteria-subheader",
+    #             )
+    #             value = item.find(
+    #                 "span",
+    #                 class_="description__job-criteria-text",
+    #             )
+    #             if header and value:
+    #                 key = header.text.strip()
+    #                 if key in criteria_mapping:
+    #                     details[criteria_mapping[key]] = value.text.strip()
+
+    #         # Number of applicants
+    #         applicants = soup.find(
+    #             "span", class_="num-applicants__caption"
+    #         ) or soup.find("figcaption", class_="num-applicants__caption")
+    #         if applicants:
+    #             details["num_applicants"] = applicants.text.strip()
+    #         job_scraper_log.info(f"Number of applicants: {details['num_applicants']}")
+
+    #     except Exception as e:
+    #         job_scraper_log.error(f"Error scraping job details at {job_url}: {e}")
+
+    #     return details
     def _scrape_job_details(self, job_url: str) -> Dict[str, str]:
-        """Visit an individual job posting page and extract additional metadata.
+        """Scrape job details from LinkedIn with robust handling of missing data.
 
-        Args:
-            job_url (str): The URL of the individual job posting.
-
-        Returns:
-            Dict[str, str]: A dictionary containing additional job details such as description, seniority level, employment type, job function, industries, and number of applicants.
+        Based on actual LinkedIn job page structure observed from job postings.
+        Handles both direct employer postings and agency/recruiter postings.
         """
-        details = {}
+        # Initialize all fields with default "N/A" values to avoid <NA> in DataFrame
+        details = {
+            "description": "N/A",
+            "salary": "N/A",
+            "benefits": "N/A",
+            "seniority_level": "N/A",
+            "employment_type": "N/A",
+            "job_function": "N/A",
+            "industries": "N/A",
+            "num_applicants": "N/A",
+            "company_name": "N/A",
+            "location": "N/A",
+            "posted_date": "N/A",
+            "date_posted_datetime": "N/A",
+            "is_agency_posting": "N/A",
+        }
         try:
-            job_scraper_log.info(f"Loading Job Details for Job URL: {job_url}")
+            job_scraper_log.info(f"Scraping job details: {job_url}")
             self.driver.get(job_url)
-            time.sleep(1.5)
+
+            # Wait for main job container to load (more flexible selector)
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located(
+                    (
+                        By.CSS_SELECTOR,
+                        "div.jobs-description, div.job-details, div.show-more-less-html__markup",
+                    )
+                )
+            )
+            time.sleep(2)  # Allow final JS rendering
 
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
 
-            # Full description
+            # 1. Description (Robust fallbacks)
             desc = soup.find("div", class_="show-more-less-html__markup")
+            if not desc:
+                desc = soup.find("div", class_="jobs-description__text")
+            if not desc:
+                desc = soup.find("div", {"data-test-job-detail": "job-description"})
+            if not desc:
+                desc = soup.find("div", class_="jobs-box__html-content")
+            if not desc:
+                desc = soup.find("div", {"data-test": "job-description"})
             if desc:
                 details["description"] = desc.get_text(separator="\n").strip()
 
-            # Criteria list (seniority, employment type, job function, industries)
-            criteria_items = soup.find_all(
-                "li", class_="description__job-criteria-item"
+            # 2. Salary/Pay Range (Multiple selectors based on observed structure)
+            salary = None
+            # Try class-based selectors first
+            salary_classes = [
+                "jobs-salary__salary-range",
+                "job-details__salary",
+                "salary",
+                "jobs-apply__salary",
+            ]
+            for cls in salary_classes:
+                elem = soup.find(["span", "div"], class_=cls)
+                if elem:
+                    salary = elem.get_text(strip=True)
+                    break
+
+            # If not found, search for pay range text patterns
+            if not salary:
+                pay_text = soup.find(
+                    string=re.compile(r"£|€|\$|base pay|pay range", re.I)
+                )
+                if pay_text and pay_text.parent:
+                    salary = pay_text.parent.get_text(strip=True)
+
+            # Also check for pay range sections (observed in agency postings like Anson McCade)
+            if not salary:
+                pay_section = soup.find(
+                    "section", string=re.compile(r"base pay|pay range", re.I)
+                )
+                if pay_section:
+                    salary = pay_section.get_text(strip=True)
+
+            if salary:
+                # Extract and clean salary range (e.g., "£100,000.00/yr - £200,000.00/yr")
+                salary_match = re.search(
+                    r"[£€\$][\d,]+(?:\.\d+)?(?:\s*[-–]\s*[£€\$][\d,]+(?:\.\d+)?)?",
+                    salary,
+                )
+                if salary_match:
+                    details["salary"] = salary_match.group()
+                else:
+                    details["salary"] = salary
+
+            # 3. Benefits (Often in a list or mentioned in description)
+            benefits = []
+            benefit_keywords = [
+                "health",
+                "dental",
+                "vision",
+                "401",
+                "pension",
+                "holiday",
+                "vacation",
+                "bonus",
+                "equity",
+                "sign-on",
+                "stock",
+                "insurance",
+                "paid time off",
+                "ptp",
+            ]
+
+            # Look for benefits sections
+            benefit_containers = soup.find_all(
+                ["div", "section", "ul"], string=re.compile(r"benefit|perk", re.I)
             )
+            for container in benefit_containers:
+                parent = (
+                    container.find_parent(["div", "section"])
+                    if container.name != "section"
+                    else container
+                )
+                if parent:
+                    items = parent.find_all(["li", "span", "div"])
+                    for item in items:
+                        text = item.get_text(strip=True).lower()
+                        if any(kw in text for kw in benefit_keywords):
+                            benefits.append(item.get_text(strip=True))
+
+            # Also check for benefits mentioned in description
+            if details["description"] != "N/A":
+                desc_text = details["description"].lower()
+                if any(kw in desc_text for kw in benefit_keywords):
+                    # Extract sentence mentioning benefits
+                    sentences = details["description"].split(".")
+                    for sentence in sentences:
+                        if any(kw in sentence.lower() for kw in benefit_keywords):
+                            benefits.append(sentence.strip())
+
+            if benefits:
+                details["benefits"] = "; ".join(
+                    list(dict.fromkeys(benefits))[:10]
+                )  # Limit to top 10, remove duplicates
+
+            # 4. Job Criteria (Seniority, Employment Type, Job Function, Industries)
             criteria_mapping = {
                 "Seniority level": "seniority_level",
                 "Employment type": "employment_type",
                 "Job function": "job_function",
                 "Industries": "industries",
             }
+
+            # Try multiple class names for criteria items
+            criteria_selectors = [
+                "description__job-criteria-item",
+                "job-details__job-criteria-item",
+                "jobs-details__job-criteria-item",
+                "job-criteria__item",
+                "jobs-description__job-criteria-item",
+            ]
+
+            criteria_items = []
+            for sel in criteria_selectors:
+                items = soup.find_all("li", class_=sel)
+                if items:
+                    criteria_items = items
+                    break
+
             for item in criteria_items:
-                header = item.find(
-                    "h3",
-                    class_="description__job-criteria-subheader",
-                )
-                value = item.find(
-                    "span",
-                    class_="description__job-criteria-text",
-                )
+                header = item.find("h3", class_="description__job-criteria-subheader")
+                value = item.find("span", class_="description__job-criteria-text")
                 if header and value:
-                    key = header.text.strip()
+                    key = header.get_text(strip=True)
                     if key in criteria_mapping:
-                        details[criteria_mapping[key]] = value.text.strip()
+                        details[criteria_mapping[key]] = value.get_text(strip=True)
 
-            # Number of applicants
-            applicants = soup.find(
-                "span", class_="num-applicants__caption"
-            ) or soup.find("figcaption", class_="num-applicants__caption")
+            # Fallback: Look for tags/labels (observed in agency postings like "Entry level", "Full-time")
+            if (
+                details["seniority_level"] == "N/A"
+                or details["employment_type"] == "N/A"
+            ):
+                tags = soup.find_all(
+                    "span", class_=re.compile(r"label|tag|badge", re.I)
+                )
+                for tag in tags:
+                    text = tag.get_text(strip=True).lower()
+                    if any(
+                        level in text
+                        for level in [
+                            "entry level",
+                            "junior",
+                            "senior",
+                            "associate",
+                            "mid",
+                            "executive",
+                        ]
+                    ):
+                        if details["seniority_level"] == "N/A":
+                            details["seniority_level"] = tag.get_text(strip=True)
+                    if any(
+                        emp in text
+                        for emp in [
+                            "full-time",
+                            "part-time",
+                            "contract",
+                            "temporary",
+                            "internship",
+                        ]
+                    ):
+                        if details["employment_type"] == "N/A":
+                            details["employment_type"] = tag.get_text(strip=True)
+
+            # 5. Number of Applicants (Only visible if logged in)
+            applicants = None
+            applicant_selectors = [
+                "num-applicants__caption",
+                "jobs-details__num-applicants",
+                "job-details__num-applicants",
+                "jobs-apply__applicants-count",
+            ]
+            for sel in applicant_selectors:
+                elem = soup.find("span", class_=sel) or soup.find(
+                    "figcaption", class_=sel
+                )
+                if elem:
+                    applicants = elem.get_text(strip=True)
+                    break
+
             if applicants:
-                details["num_applicants"] = applicants.text.strip()
-            job_scraper_log.info(f"Number of applicants: {details['num_applicants']}")
+                # Clean: "100+ applicants" → "100"
+                num = re.sub(r"[^0-9]", "", applicants)
+                details["num_applicants"] = num if num else applicants
 
+            # 6. Company Name (Multiple selectors)
+            company = soup.find("a", class_="job-details__company-name")
+            if not company:
+                company = soup.find("a", {"data-test": "company-name"})
+            if not company:
+                company = soup.find("a", href=re.compile(r"linkedin.com/company", re.I))
+            if not company:
+                company = soup.find("h4", class_="job-details__company-name")
+            if not company:
+                company = soup.find("div", class_="job-details__company-name")
+            if company:
+                details["company_name"] = company.get_text(strip=True)
+
+            # 7. Location (Multiple selectors)
+            location = soup.find("span", class_="job-details__job-location")
+            if not location:
+                location = soup.find("span", {"data-test": "job-location"})
+            if not location:
+                location = soup.find(
+                    "span",
+                    string=re.compile(
+                        r"London|United Kingdom|Germany|Remote|Hybrid", re.I
+                    ),
+                )
+            if not location:
+                # Try finding location in the job header
+                header = soup.find("h4", class_="job-details__job-location")
+                if header:
+                    location = header
+            if location:
+                details["location"] = location.get_text(strip=True)
+
+            # 8. Posted Date
+            posted = soup.find("time", class_="job-search-card__listdate")
+            if not posted:
+                posted = soup.find("time", class_="job-search-card__listdate--new")
+            if not posted:
+                posted = soup.find(
+                    "span", string=re.compile(r"ago|posted|day|week|month", re.I)
+                )
+            if posted:
+                details["posted_date"] = posted.get_text(strip=True)
+                # Try to extract datetime attribute
+                if posted.has_attr("datetime"):
+                    details["date_posted_datetime"] = posted.get("datetime")
+
+            # 9. Detect if this is an agency/recruiter posting vs direct employer
+            recruiter_indicators = [
+                "recruiter",
+                "agency",
+                "provided pay range",
+                "talk with your recruiter",
+                "direct message the job poster",
+            ]
+            page_text = soup.get_text().lower()
+            if any(indicator in page_text for indicator in recruiter_indicators):
+                details["is_agency_posting"] = "Yes"
+            else:
+                details["is_agency_posting"] = "No"
+
+        except TimeoutException:
+            job_scraper_log.warning(f"Timeout loading job: {job_url}")
+            details["error"] = "Timeout"
         except Exception as e:
-            job_scraper_log.error(f"Error scraping job details at {job_url}: {e}")
+            job_scraper_log.error(f"Error scraping job {job_url}: {e}")
+            details["error"] = str(e)
 
         return details
 
@@ -290,6 +594,8 @@ class LinkedInJobScraper:
             sorted_jobs_df = self.get_jobs_df(sort_for_newest=True)
             # Select the chosen columns in the specified order before saving to CSV
             sorted_jobs_df = sorted_jobs_df[fieldnames]
+            sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
+            sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
             # Save to .csv file
             sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
         else:
@@ -297,6 +603,8 @@ class LinkedInJobScraper:
             sorted_jobs_df = self.get_jobs_df(sort_for_newest=False)
             # Select the chosen columns in the specified order before saving to CSV
             sorted_jobs_df = sorted_jobs_df[fieldnames]
+            sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
+            sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
             # Save to .csv file
             sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
         job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {filename}")
@@ -339,6 +647,9 @@ if __name__ == "__main__":
     scraper.scrape_jobs(search_terms=search_terms, locations=locations)
     # 5) Get the jobs DataFrame
     jobs_df = scraper.get_jobs_df()
+    jobs_df = jobs_df.replace("N/A", pd.NA)
+    jobs_df = jobs_df.dropna(axis="columns", how="all")
+    print(jobs_df)
     # 6) Save the jobs DataFrame to CSV
     today = dt.datetime.now().strftime("%Y-%m-%d")
     filename = rf"linkedin_jobs_{today}.csv"
