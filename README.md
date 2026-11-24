@@ -2,6 +2,8 @@
 
 An automated job scraper that searches LinkedIn for junior/graduate trading positions in Germany, saves the results to CSV, and emails a daily summary — all running automatically via GitHub Actions.
 
+
+To trigger the cron job and the execution of the script a POST request is sent via a configured cron schedule on: https://console.cron-job.org/login.
 ## Table of Contents
 
 - [Features](#features)
