@@ -2,3 +2,4 @@ pandas==3.1.1
 selenium==4.52.0
 beautifulsoup4==4.15.0
 pyshorteners==1.0.1
+openpyxl==3.1.5
