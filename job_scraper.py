@@ -13,6 +13,7 @@ import re
 import pandas as pd
 import datetime as dt
 import sys
+import pyshorteners
 
 # Import the EmailNotifier class from email_notifier.py
 from email_notifier import EmailNotifier
@@ -40,7 +41,17 @@ job_scraper_log.addHandler(ch)
 
 # Set up static global variables
 BASE_URL = "https://www.linkedin.com/jobs/search/"
-
+COL_NAME_MAPPING_DICT = {
+    "search_term": "Search Term",
+    "search_location": "Search Location",
+    "title": "Job Title",
+    "company": "Company Name",
+    "location": "Job Location",
+    "date_posted": "Date Posted",
+    "date_posted_datetime": "Date Posted (Datetime)",
+    "company_logo_url": "Company Logo URL",
+    "link": "Job Link",
+}
 # Get .env file path
 env_file_path = os.path.join(os.path.dirname(__file__), ".env")
 # Load environment variables from .env file
@@ -181,64 +192,6 @@ class LinkedInJobScraper:
                     job_scraper_log.error(f"Error scraping: {e}")
         job_scraper_log.info(f"Scraping complete. Total jobs found: {len(self.jobs)}")
 
-    # def _scrape_job_details(self, job_url: str) -> Dict[str, str]:
-    #     """Visit an individual job posting page and extract additional metadata.
-
-    #     Args:
-    #         job_url (str): The URL of the individual job posting.
-
-    #     Returns:
-    #         Dict[str, str]: A dictionary containing additional job details such as description, seniority level, employment type, job function, industries, and number of applicants.
-    #     """
-    #     details = {}
-    #     try:
-    #         job_scraper_log.info(f"Loading Job Details for Job URL: {job_url}")
-    #         self.driver.get(job_url)
-    #         time.sleep(1.5)
-
-    #         soup = BeautifulSoup(self.driver.page_source, "html.parser")
-
-    #         # Full description
-    #         desc = soup.find("div", class_="show-more-less-html__markup")
-    #         if desc:
-    #             details["description"] = desc.get_text(separator="\n").strip()
-
-    #         # Criteria list (seniority, employment type, job function, industries)
-    #         criteria_items = soup.find_all(
-    #             "li", class_="description__job-criteria-item"
-    #         )
-    #         criteria_mapping = {
-    #             "Seniority level": "seniority_level",
-    #             "Employment type": "employment_type",
-    #             "Job function": "job_function",
-    #             "Industries": "industries",
-    #         }
-    #         for item in criteria_items:
-    #             header = item.find(
-    #                 "h3",
-    #                 class_="description__job-criteria-subheader",
-    #             )
-    #             value = item.find(
-    #                 "span",
-    #                 class_="description__job-criteria-text",
-    #             )
-    #             if header and value:
-    #                 key = header.text.strip()
-    #                 if key in criteria_mapping:
-    #                     details[criteria_mapping[key]] = value.text.strip()
-
-    #         # Number of applicants
-    #         applicants = soup.find(
-    #             "span", class_="num-applicants__caption"
-    #         ) or soup.find("figcaption", class_="num-applicants__caption")
-    #         if applicants:
-    #             details["num_applicants"] = applicants.text.strip()
-    #         job_scraper_log.info(f"Number of applicants: {details['num_applicants']}")
-
-    #     except Exception as e:
-    #         job_scraper_log.error(f"Error scraping job details at {job_url}: {e}")
-
-    #     return details
     def _scrape_job_details(self, job_url: str) -> Dict[str, str]:
         """Scrape job details from LinkedIn with robust handling of missing data.
 
@@ -551,7 +504,7 @@ class LinkedInJobScraper:
         job_scraper_log.info(f"Filtering jobs for companies: {', '.join(companies)}")
         self.jobs = [job for job in self.jobs if job["company"] in companies]
 
-    def save_to_csv(
+    def _save(
         self,
         file_path: str,
         filename: str = f"linkedin_jobs_{dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv",
@@ -575,16 +528,21 @@ class LinkedInJobScraper:
             "link",
         ],
         sort_for_newest: bool = True,
+        col_name_mapping_dict: Dict[str, str] = COL_NAME_MAPPING_DICT,
+        shorten_links: bool = True,
     ) -> None:
         """Save scraped jobs to CSV file
 
         Args:
+            file_path (str, optional): The path to the directory where the file will be saved. Defaults to the current directory.
             filename (str, optional): The name of the CSV file to save the jobs to. Defaults to "linkedin_jobs.csv".
             sort_for_newest (bool, optional): Whether to sort the jobs by date posted in descending order. Defaults to True.
         """
         if not self.jobs:
             job_scraper_log.error("No jobs found")
             return
+        if shorten_links:
+            type_tiny = pyshorteners.Shortener()
         full_file_path = os.path.join(file_path, filename) if file_path else filename
         job_scraper_log.info(
             f"Saving file: {filename} under file path: {file_path}\nFull file path: {full_file_path}"
@@ -596,8 +554,19 @@ class LinkedInJobScraper:
             sorted_jobs_df = sorted_jobs_df[fieldnames]
             sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
             sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
+            if shorten_links:
+                sorted_jobs_df["link"] = [
+                    type_tiny.tinyurl.short(li) for li in sorted_jobs_df["link"]
+                ]
+                sorted_jobs_df["company_logo_url"] = [
+                    type_tiny.tinyurl.short(li)
+                    for li in sorted_jobs_df["company_logo_url"]
+                ]
+            sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
             # Save to .csv file
-            sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
+            # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
+            # save to excel file
+            sorted_jobs_df.to_excel(full_file_path, index=False)
         else:
             # Sort the jobs df for posting date in descending order before saving to CSV
             sorted_jobs_df = self.get_jobs_df(sort_for_newest=False)
@@ -605,8 +574,19 @@ class LinkedInJobScraper:
             sorted_jobs_df = sorted_jobs_df[fieldnames]
             sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
             sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
+            if shorten_links:
+                sorted_jobs_df["link"] = [
+                    type_tiny.tinyurl.short(li) for li in sorted_jobs_df["link"]
+                ]
+                sorted_jobs_df["company_logo_url"] = [
+                    type_tiny.tinyurl.short(li)
+                    for li in sorted_jobs_df["company_logo_url"]
+                ]
+            sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
             # Save to .csv file
-            sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
+            # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
+            # save to excel file
+            sorted_jobs_df.to_excel(full_file_path, index=False)
         job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {filename}")
 
     def get_jobs_df(
@@ -622,7 +602,6 @@ class LinkedInJobScraper:
             jobs_df[dt_column] = pd.to_datetime(
                 jobs_df[dt_column], format="%Y-%m-%d", errors="coerce"
             )
-            print(type(jobs_df[dt_column]))
             jobs_df = jobs_df.sort_values(dt_column, ascending=False)
         return jobs_df
 
@@ -650,12 +629,12 @@ if __name__ == "__main__":
     jobs_df = jobs_df.replace("N/A", pd.NA)
     jobs_df = jobs_df.dropna(axis="columns", how="all")
     print(jobs_df)
-    # 6) Save the jobs DataFrame to CSV
-    today = dt.datetime.now().strftime("%Y-%m-%d")
-    filename = rf"linkedin_jobs_{today}.csv"
+    # 6) Save the jobs DataFrame to Excel
+    today = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    filename = rf"linkedin_jobs_{today.replace(':', '-')}.xlsx"
     file_path = r"Job_Scraper"
     os.makedirs(file_path, exist_ok=True)
-    scraper.save_to_csv(
+    scraper._save(
         file_path=file_path,
         filename=filename,
     )

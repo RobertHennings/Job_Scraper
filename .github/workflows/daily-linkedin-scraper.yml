@@ -2,7 +2,8 @@ name: Daily LinkedIn Job Scraper
 
 on:
   schedule:
-    - cron: "12,42 * * * *" # Runs twice an hour at :12 and :42 (avoids peak queue drops)
+    # Runs every 30 minutes, between 07:00 am and 09:00 am german local time
+    - cron: "*/30 7-9 * * *"
   workflow_dispatch:
 
 permissions:
