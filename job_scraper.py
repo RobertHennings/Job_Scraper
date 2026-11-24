@@ -52,6 +52,25 @@ COL_NAME_MAPPING_DICT = {
     "company_logo_url": "Company Logo URL",
     "link": "Job Link",
 }
+FIELDNAMES = [
+    "search_term",
+    "search_location",
+    "title",
+    "company",
+    "location",
+    "date_posted",
+    "date_posted_datetime",
+    "salary",
+    "benefits",
+    "seniority_level",
+    "employment_type",
+    "job_function",
+    "industries",
+    "num_applicants",
+    "description",
+    "company_logo_url",
+    "link",
+]
 # Get .env file path
 env_file_path = os.path.join(os.path.dirname(__file__), ".env")
 # Load environment variables from .env file
@@ -92,7 +111,10 @@ class LinkedInJobScraper:
             search_single_listings (bool, optional): Whether to search for single job listings. Defaults to False.
             base_url (str, optional): The base URL for the job search. Defaults to "https://www.linkedin.com/jobs/search/".
         """
-        for search_term in search_terms:
+        url_ready_search_terms = [
+            search_term.replace(" ", "+") for search_term in search_terms
+        ]
+        for search_term in url_ready_search_terms:
             for location in locations:
                 url = f"{base_url}?keywords={search_term}&location={location}"
                 job_scraper_log.info(
@@ -508,25 +530,7 @@ class LinkedInJobScraper:
         self,
         file_path: str,
         filename: str = f"linkedin_jobs_{dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv",
-        fieldnames: List[str] = [
-            "search_term",
-            "search_location",
-            "title",
-            "company",
-            "location",
-            "date_posted",
-            "date_posted_datetime",
-            "salary",
-            "benefits",
-            "seniority_level",
-            "employment_type",
-            "job_function",
-            "industries",
-            "num_applicants",
-            "description",
-            "company_logo_url",
-            "link",
-        ],
+        fieldnames: List[str] = FIELDNAMES,
         sort_for_newest: bool = True,
         col_name_mapping_dict: Dict[str, str] = COL_NAME_MAPPING_DICT,
         shorten_links: bool = True,
@@ -536,32 +540,27 @@ class LinkedInJobScraper:
         Args:
             file_path (str, optional): The path to the directory where the file will be saved. Defaults to the current directory.
             filename (str, optional): The name of the CSV file to save the jobs to. Defaults to "linkedin_jobs.csv".
+            fieldnames (List[str], optional): The list of field names to include in the CSV file. Defaults to the predefined field names.
             sort_for_newest (bool, optional): Whether to sort the jobs by date posted in descending order. Defaults to True.
         """
         if not self.jobs:
             job_scraper_log.error("No jobs found")
             return
-        if shorten_links:
-            type_tiny = pyshorteners.Shortener()
         full_file_path = os.path.join(file_path, filename) if file_path else filename
         job_scraper_log.info(
             f"Saving file: {filename} under file path: {file_path}\nFull file path: {full_file_path}"
         )
         if sort_for_newest:
             # Sort the jobs df for posting date in descending order before saving to CSV
-            sorted_jobs_df = self.get_jobs_df(sort_for_newest=True)
+            sorted_jobs_df = self.get_jobs_df(
+                sort_for_newest=sort_for_newest,
+                fieldnames=fieldnames,
+                shorten_links=shorten_links,
+                col_name_mapping_dict=col_name_mapping_dict,
+            )
             # Select the chosen columns in the specified order before saving to CSV
-            sorted_jobs_df = sorted_jobs_df[fieldnames]
             sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
             sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
-            if shorten_links:
-                sorted_jobs_df["link"] = [
-                    type_tiny.tinyurl.short(li) for li in sorted_jobs_df["link"]
-                ]
-                sorted_jobs_df["company_logo_url"] = [
-                    type_tiny.tinyurl.short(li)
-                    for li in sorted_jobs_df["company_logo_url"]
-                ]
             sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
             # Save to .csv file
             # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
@@ -569,19 +568,16 @@ class LinkedInJobScraper:
             sorted_jobs_df.to_excel(full_file_path, index=False)
         else:
             # Sort the jobs df for posting date in descending order before saving to CSV
-            sorted_jobs_df = self.get_jobs_df(sort_for_newest=False)
+            sorted_jobs_df = self.get_jobs_df(
+                sort_for_newest=False,
+                fieldnames=fieldnames,
+                shorten_links=shorten_links,
+                col_name_mapping_dict=col_name_mapping_dict,
+            )
             # Select the chosen columns in the specified order before saving to CSV
             sorted_jobs_df = sorted_jobs_df[fieldnames]
             sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
             sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
-            if shorten_links:
-                sorted_jobs_df["link"] = [
-                    type_tiny.tinyurl.short(li) for li in sorted_jobs_df["link"]
-                ]
-                sorted_jobs_df["company_logo_url"] = [
-                    type_tiny.tinyurl.short(li)
-                    for li in sorted_jobs_df["company_logo_url"]
-                ]
             sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
             # Save to .csv file
             # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
@@ -590,7 +586,12 @@ class LinkedInJobScraper:
         job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {filename}")
 
     def get_jobs_df(
-        self, sort_for_newest: bool = True, dt_column: str = "date_posted_datetime"
+        self,
+        sort_for_newest: bool = True,
+        dt_column: str = "date_posted_datetime",
+        fieldnames: List[str] = FIELDNAMES,
+        col_name_mapping_dict: Dict[str, str] = COL_NAME_MAPPING_DICT,
+        shorten_links: bool = True,
     ) -> pd.DataFrame:
         """Get the scraped jobs as a pandas DataFrame.
 
@@ -602,7 +603,19 @@ class LinkedInJobScraper:
             jobs_df[dt_column] = pd.to_datetime(
                 jobs_df[dt_column], format="%Y-%m-%d", errors="coerce"
             )
-            jobs_df = jobs_df.sort_values(dt_column, ascending=False)
+            jobs_df = jobs_df.sort_values(dt_column, ascending=False).reset_index(
+                drop=True
+            )
+        jobs_df = jobs_df[fieldnames]
+        jobs_df = jobs_df.replace("N/A", pd.NA)
+        jobs_df = jobs_df.dropna(axis="columns", how="all")
+        if shorten_links:
+            type_tiny = pyshorteners.Shortener()
+            jobs_df["link"] = [type_tiny.tinyurl.short(li) for li in jobs_df["link"]]
+            jobs_df["company_logo_url"] = [
+                type_tiny.tinyurl.short(li) for li in jobs_df["company_logo_url"]
+            ]
+        jobs_df = jobs_df.rename(columns=col_name_mapping_dict)
         return jobs_df
 
     def close(self):
@@ -626,8 +639,6 @@ if __name__ == "__main__":
     scraper.scrape_jobs(search_terms=search_terms, locations=locations)
     # 5) Get the jobs DataFrame
     jobs_df = scraper.get_jobs_df()
-    jobs_df = jobs_df.replace("N/A", pd.NA)
-    jobs_df = jobs_df.dropna(axis="columns", how="all")
     print(jobs_df)
     # 6) Save the jobs DataFrame to Excel
     today = dt.datetime.now().strftime("%Y-%m-%d %H:%M")

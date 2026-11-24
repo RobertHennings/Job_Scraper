@@ -8322,3 +8322,46 @@ INFO:job_scraper:Scraping complete. Total jobs found: 119
 INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 07-57.xlsx under file path: Job_Scraper
 Full file path: Job_Scraper/linkedin_jobs_2026-11-24 07-57.xlsx
 INFO:job_scraper:Saved 119 jobs to linkedin_jobs_2026-11-24 07-57.xlsx
+INFO:job_scraper:Scraping jobs for 'Graduate Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 54 job cards for 'Graduate Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 46 job cards for 'Junior Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 100
+INFO:job_scraper:Scraping jobs for 'Graduate Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 54 job cards for 'Graduate Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 46 job cards for 'Junior Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 100
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 08-18.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-24 08-18.xlsx
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 54 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 46 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 100
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 08-21.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-24 08-21.xlsx
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 54 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 46 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 100
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 08-27.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-24 08-27.xlsx
+INFO:job_scraper:Saved 100 jobs to linkedin_jobs_2026-11-24 08-27.xlsx
