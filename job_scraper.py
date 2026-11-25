@@ -14,6 +14,7 @@ import pandas as pd
 import datetime as dt
 import sys
 import pyshorteners
+from zoneinfo import ZoneInfo
 
 # Import the EmailNotifier class from email_notifier.py
 from email_notifier import EmailNotifier
@@ -640,8 +641,8 @@ if __name__ == "__main__":
     # 5) Get the jobs DataFrame
     jobs_df = scraper.get_jobs_df()
     print(jobs_df)
-    # 6) Save the jobs DataFrame to Excel
-    today = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    # 6) Save the jobs DataFrame to Excel, current german local time
+    today = dt.datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
     filename = rf"linkedin_jobs_{today.replace(':', '-')}.xlsx"
     file_path = r"Job_Scraper"
     os.makedirs(file_path, exist_ok=True)

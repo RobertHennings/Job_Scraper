@@ -1,9 +1,11 @@
-# LinkedIn Job Scraper
+# LinkedIn Job Scraper with Excel Export and Email Notifications
 
-An automated job scraper that searches LinkedIn for junior/graduate trading positions in Germany, saves the results to CSV, and emails a daily summary — all running automatically via GitHub Actions.
+An automated job scraper that searches LinkedIn for defined search terms in the specified locations, saves the results to Excel files (with shortened links), and emails a daily summary — all running automatically via GitHub Actions.
 
+## To trigger the cron job and the execution of the script
 
-To trigger the cron job and the execution of the script a POST request is sent via a configured cron schedule on: https://console.cron-job.org/login.
+A POST request is sent via a configured cron schedule on: <https://console.cron-job.org/login>.
+
 ## Table of Contents
 
 - [Features](#features)
@@ -33,10 +35,11 @@ To trigger the cron job and the execution of the script a POST request is sent v
   - Number of applicants
   - Company logo URL and job link
   - Full job description (when individual listing scraping is enabled)
-- **Date-sorted output** written to timestamped CSV files
-- **Email Notifier** that sends an HTML summary table with the scraped jobs as an attachment
-- **GitHub Actions workflow** for fully automated scheduled runs (twice per hour)
-- **Automatic commit/push** of updated CSV and log files back to the repository
+- **Excel export** with professional column headers and shortened URLs (using TinyURL)
+- **Date-sorted output** written to timestamped Excel files
+- **Email Notifier** that sends an HTML summary table with the scraped jobs as an Excel attachment
+- **GitHub Actions workflow** for fully automated scheduled runs (every 30 minutes during business hours)
+- **Automatic commit/push** of updated Excel and log files back to the repository
 - **Headless Chrome** execution, suitable for CI/CD environments
 
 ---
@@ -48,7 +51,8 @@ job_scraper/
 ├── .github/
 │   └── workflows/
 │       └── daily-linkedin-scraper.yml    # GitHub Actions workflow
-├── Job_Scraper/                            # Output directory for scraped CSV files
+
+├── Job_Scraper/                            # Output directory for scraped Excel files
 ├── email_notifier.py                       # Email notification module
 ├── email_notifier.log                      # Email notifier log output
 ├── job_scraper.py                          # Main scraper entry point
@@ -137,48 +141,45 @@ This will:
 
 1. Launch a headless Chrome instance
 2. Scrape LinkedIn for the configured search terms and locations
-3. Save results to `Job_Scraper/linkedin_jobs_<YYYY-MM-DD>.csv`
-4. Send an email summary with the job listings as an attachment
+
+3. Save results to `Job_Scraper/linkedin_jobs_<YYYY-MM-DD_HH-MM>.xlsx`
+4. Send an email summary with the job listings as an Excel attachment
 5. Log all activity to `job_scraper.log` and `email_notifier.log`
 
-### Automated Scheduling (GitHub Actions)
-
-The included workflow (`.github/workflows/daily-linkedin-scraper.yml`) runs the scraper **twice per hour** at minutes `:12` and `:42` (UTC). It:
+The included workflow (`.github/workflows/daily-linkedin-scraper.yml`) runs the scraper **every 30 minutes during business hours** (7-9 AM German time, UTC+2). It:
 
 1. Checks out the repository
 2. Sets up Python 3.11
 3. Installs Chrome
 4. Installs Python dependencies
 5. Runs the scraper with GitHub Secrets as environment variables
-6. Commits and pushes any updated CSV/log files back to the repository
-
-> **Note:** GitHub Actions cron schedules use **UTC** by default. The schedule `12,42 * * * *` runs at 12:12/12:42 UTC = 14:12/14:42 German time (CEST, UTC+2).
+6. Commits and pushes any updated Excel/log files back to the repository
 
 ---
 
 ## Output Data
 
-Scraped results are saved as CSV files containing the following fields:
+Scraped results are saved as Excel files containing the following fields:
 
 | Column                  | Description                               |
 |-------------------------|-------------------------------------------|
-| `search_term`           | The search keyword used                   |
-| `search_location`       | The location searched                     |
-| `title`                 | Job title                                 |
-| `company`               | Company name                              |
-| `location`              | Job location                              |
-| `date_posted`           | Human-readable posting date               |
-| `date_posted_datetime`  | ISO 8601 posting date                     |
-| `salary`                | Salary range (if available)               |
-| `benefits`              | Benefits text (if available)              |
-| `seniority_level`       | E.g., "Entry level", "Associate"          |
-| `employment_type`       | E.g., "Full-time", "Contract"             |
-| `job_function`          | E.g., "Finance", "Engineering"            |
-| `industries`            | Industries listed on the posting          |
-| `num_applicants`        | Number of applicants                      |
-| `description`           | Full job description (if requested)       |
-| `company_logo_url`      | URL of the company logo                   |
-| `link`                  | Direct URL to the LinkedIn job posting    |
+| `Search Term`           | The search keyword used                   |
+| `Search Location`       | The location searched                     |
+| `Job Title`             | Job title                                 |
+| `Company Name`          | Company name                              |
+| `Job Location`          | Job location                              |
+| `Date Posted`           | Human-readable posting date               |
+| `Date Posted (Datetime)`| ISO 8601 posting date                     |
+| `Salary`                | Salary range (if available)               |
+| `Benefits`              | Benefits text (if available)              |
+| `Seniority Level`       | E.g., "Entry level", "Associate"        |
+| `Employment Type`       | E.g., "Full-time", "Contract"           |
+| `Job Function`          | E.g., "Finance", "Engineering"          |
+| `Industries`            | Industries listed on the posting          |
+| `Num Applicants`        | Number of applicants                      |
+| `Description`           | Full job description (if requested)       |
+| `Company Logo URL`      | Shortened URL to the company logo         |
+| `Job Link`              | Shortened direct URL to the LinkedIn job  |
 
 ---
 
@@ -215,7 +216,8 @@ You can run the workflow on-demand anytime by:
 | Issue                                    | Solution                                                                                              |
 |------------------------------------------|-------------------------------------------------------------------------------------------------------|
 | **Workflow doesn't run on schedule**     | - Confirm the workflow is on the default branch<br>- Check if it's disabled in the Actions tab<br>- Note: GitHub delays scheduled runs by up to 15–20 minutes on free plans |
-| **`pandas==3.0.5` install fails**        | Use a valid version (e.g., `pandas==3.1.1`) — update `requirements.txt`                              |
+| **`openpyxl==3.1.5` install fails**      | Use a valid version (e.g., `openpyxl==3.1.2`) — update `requirements.txt`                           |
+| **Shortened links not working**          | TinyURL may occasionally have issues — check internet connectivity during execution                    |
 | **Email not sent**                       | - Verify `SENDER_EMAIL`/`SENDER_PASSWORD` secrets are set<br>- Use a [Gmail App Password](https://support.google.com/accounts/answer/185833), not your normal password |
 | **Chrome/Chromedriver errors**           | Ensure Chrome is installed (`browser-actions/setup-chrome@v1` handles this in CI)                      |
 | **LinkedIn blocks or returns no results**| - Add `--headless=new` and a realistic `user-agent` (already configured)<br>- Reduce scraping frequency to avoid rate limiting |

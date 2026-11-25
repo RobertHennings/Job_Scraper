@@ -3,3 +3,4 @@ __pycache__
 # ################## Mac related stuff
 .DS_Store
 .env
+.venv
