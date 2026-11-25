@@ -8365,3 +8365,75 @@ INFO:job_scraper:Scraping complete. Total jobs found: 100
 INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 08-27.xlsx under file path: Job_Scraper
 Full file path: Job_Scraper/linkedin_jobs_2026-11-24 08-27.xlsx
 INFO:job_scraper:Saved 100 jobs to linkedin_jobs_2026-11-24 08-27.xlsx
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 120
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 16-26.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-24 16-26.xlsx
+INFO:job_scraper:Saved 120 jobs to linkedin_jobs_2026-11-24 16-26.xlsx
+INFO:email_notifier:Validated email address for sender_email: robhenn60@gmail.com
+INFO:email_notifier:Validated email address for recipient_email: robert.hennings@stu.uni-kiel.de
+INFO:email_notifier:Trying to attach file: Job_Scraper/linkedin_jobs_2026-11-24 16-26.xlsx
+INFO:email_notifier:Starting TLS connection to SMTP server.
+INFO:email_notifier:Logging in to SMTP server.
+INFO:email_notifier:Email sent successfully.
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 120
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 17-02.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-24 17-02.xlsx
+INFO:job_scraper:Saved 120 jobs to linkedin_jobs_2026-11-24 17-02.xlsx
+INFO:email_notifier:Validated email address for sender_email: robhenn60@gmail.com
+INFO:email_notifier:Validated email address for recipient_email: robert.hennings@stu.uni-kiel.de
+INFO:email_notifier:Trying to attach file: Job_Scraper/linkedin_jobs_2026-11-24 17-02.xlsx
+INFO:email_notifier:Starting TLS connection to SMTP server.
+INFO:email_notifier:Logging in to SMTP server.
+INFO:email_notifier:Email sent successfully.
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 120
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-24 18-50.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-24 18-50.xlsx
+INFO:job_scraper:Saved 120 jobs to linkedin_jobs_2026-11-24 18-50.xlsx
+INFO:email_notifier:Validated email address for sender_email: robhenn60@gmail.com
+INFO:email_notifier:Validated email address for recipient_email: robert.hennings@stu.uni-kiel.de
+INFO:email_notifier:Trying to attach file: Job_Scraper/linkedin_jobs_2026-11-24 18-50.xlsx
+INFO:email_notifier:Starting TLS connection to SMTP server.
+INFO:email_notifier:Logging in to SMTP server.
+INFO:email_notifier:Email sent successfully.
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 54 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 48 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping complete. Total jobs found: 102
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-25 07-01.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-25 07-01.xlsx
+INFO:job_scraper:Saved 102 jobs to linkedin_jobs_2026-11-25 07-01.xlsx
+INFO:email_notifier:Validated email address for sender_email: robhenn60@gmail.com
+INFO:email_notifier:Validated email address for recipient_email: robert.hennings@stu.uni-kiel.de
+INFO:email_notifier:Trying to attach file: Job_Scraper/linkedin_jobs_2026-11-25 07-01.xlsx
+INFO:email_notifier:Starting TLS connection to SMTP server.
+INFO:email_notifier:Logging in to SMTP server.
+INFO:email_notifier:Email sent successfully.
