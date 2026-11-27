@@ -668,6 +668,7 @@ if __name__ == "__main__":
         sender_email=sender_email,
         sender_password=sender_password,
     )
+
     # 9) Transform the pandas Dataframe to html table to be properly displayed in the email body
     jobs_table = jobs_df.to_html(index=False)
     email_body = f"""
