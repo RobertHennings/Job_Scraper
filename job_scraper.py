@@ -69,7 +69,6 @@ FIELDNAMES = [
     "industries",
     "num_applicants",
     "description",
-    "company_logo_url",
     "link",
 ]
 # Get .env file path
@@ -535,6 +534,14 @@ class LinkedInJobScraper:
         sort_for_newest: bool = True,
         col_name_mapping_dict: Dict[str, str] = COL_NAME_MAPPING_DICT,
         shorten_links: bool = True,
+        drop_duplicates: bool = True,
+        duplicates_col_names_subset: List[str] = [
+            "title",
+            "company",
+            "location",
+            "date_posted",
+            "link",
+        ],
     ) -> None:
         """Save scraped jobs to CSV file
 
@@ -552,38 +559,26 @@ class LinkedInJobScraper:
             f"Saving file: {filename} under file path: {file_path}\nFull file path: {full_file_path}"
         )
         if sort_for_newest:
-            # Sort the jobs df for posting date in descending order before saving to CSV
-            sorted_jobs_df = self.get_jobs_df(
-                sort_for_newest=sort_for_newest,
-                fieldnames=fieldnames,
-                shorten_links=shorten_links,
-                col_name_mapping_dict=col_name_mapping_dict,
-            )
-            # Select the chosen columns in the specified order before saving to CSV
-            sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
-            sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
-            sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
-            # Save to .csv file
-            # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
-            # save to excel file
-            sorted_jobs_df.to_excel(full_file_path, index=False)
+            sort_for_newest = True
         else:
-            # Sort the jobs df for posting date in descending order before saving to CSV
-            sorted_jobs_df = self.get_jobs_df(
-                sort_for_newest=False,
-                fieldnames=fieldnames,
-                shorten_links=shorten_links,
-                col_name_mapping_dict=col_name_mapping_dict,
-            )
-            # Select the chosen columns in the specified order before saving to CSV
-            sorted_jobs_df = sorted_jobs_df[fieldnames]
-            sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
-            sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
-            sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
-            # Save to .csv file
-            # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
-            # save to excel file
-            sorted_jobs_df.to_excel(full_file_path, index=False)
+            sort_for_newest = False
+        # Sort the jobs df for posting date in descending order before saving to CSV
+        sorted_jobs_df = self.get_jobs_df(
+            sort_for_newest=sort_for_newest,
+            fieldnames=fieldnames,
+            shorten_links=shorten_links,
+            col_name_mapping_dict=col_name_mapping_dict,
+            drop_duplicates=drop_duplicates,
+            duplicates_col_names_subset=duplicates_col_names_subset,
+        )
+        # Select the chosen columns in the specified order before saving to CSV
+        sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
+        sorted_jobs_df = sorted_jobs_df.dropna(axis="columns", how="all")
+        sorted_jobs_df = sorted_jobs_df.rename(columns=col_name_mapping_dict)
+        # Save to .csv file
+        # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
+        # save to excel file
+        sorted_jobs_df.to_excel(full_file_path, index=False)
         job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {filename}")
 
     def get_jobs_df(
@@ -593,29 +588,70 @@ class LinkedInJobScraper:
         fieldnames: List[str] = FIELDNAMES,
         col_name_mapping_dict: Dict[str, str] = COL_NAME_MAPPING_DICT,
         shorten_links: bool = True,
+        drop_duplicates: bool = True,
+        duplicates_col_names_subset: List[str] = [
+            "title",
+            "company",
+            "location",
+            "date_posted",
+            "link",
+        ],
     ) -> pd.DataFrame:
         """Get the scraped jobs as a pandas DataFrame.
 
+        Args:
+            sort_for_newest (bool, optional): Whether to sort the jobs by date posted in descending order. Defaults to True.
+            dt_column (str, optional): The column name for the date posted datetime. Defaults to "date_posted_datetime".
+            fieldnames (List[str], optional): The list of field names to include in the DataFrame. Defaults to the predefined field names.
+            col_name_mapping_dict (Dict[str, str], optional): The dictionary mapping of column names to be renamed in the DataFrame. Defaults to the predefined mapping.
+            shorten_links (bool, optional): Whether to shorten the job and company logo links using TinyURL. Defaults to True.
+            drop_duplicates (bool, optional): Whether to drop duplicate job listings based on a subset of columns. Defaults to True.
+            duplicates_col_names_subset (List[str], optional): The subset of column names to consider for identifying duplicates. Defaults to ["title", "company", "location", "date_posted", "link"].
         Returns:
             pd.DataFrame: The DataFrame of scraped jobs.
         """
         jobs_df = pd.DataFrame(self.jobs)
+        # Drop duplicates based on the specified subset of columns
+        if drop_duplicates:
+            job_scraper_log.info(
+                f"Dropping duplicates based on columns: {', '.join(duplicates_col_names_subset)}"
+            )
+            duplicated_mask = jobs_df.duplicated(
+                subset=duplicates_col_names_subset, keep="first"
+            )
+            num_duplicates = duplicated_mask.sum()
+            job_scraper_log.info(f"Found {num_duplicates} duplicate job listings.")
+            if num_duplicates > 0:
+                job_scraper_log.info(
+                    f"Dropping {num_duplicates} duplicate job listings."
+                )
+                jobs_df = jobs_df.drop_duplicates(subset=duplicates_col_names_subset)
+
         if sort_for_newest:
+            job_scraper_log.info(f"Sorting jobs by '{dt_column}' in descending order")
             jobs_df[dt_column] = pd.to_datetime(
                 jobs_df[dt_column], format="%Y-%m-%d", errors="coerce"
             )
             jobs_df = jobs_df.sort_values(dt_column, ascending=False).reset_index(
                 drop=True
             )
+        job_scraper_log.info(f"Final DataFrame shape: {jobs_df.shape}")
         jobs_df = jobs_df[fieldnames]
         jobs_df = jobs_df.replace("N/A", pd.NA)
         jobs_df = jobs_df.dropna(axis="columns", how="all")
+        job_scraper_log.info(
+            f"Final DataFrame shape after dropping empty columns: {jobs_df.shape}"
+        )
         if shorten_links:
+            job_scraper_log.info(
+                f"Shortening job and company logo links using TinyURL."
+            )
             type_tiny = pyshorteners.Shortener()
             jobs_df["link"] = [type_tiny.tinyurl.short(li) for li in jobs_df["link"]]
             jobs_df["company_logo_url"] = [
                 type_tiny.tinyurl.short(li) for li in jobs_df["company_logo_url"]
             ]
+        job_scraper_log.info(f"Renaming columns based on provided mapping dictionary.")
         jobs_df = jobs_df.rename(columns=col_name_mapping_dict)
         return jobs_df
 
@@ -631,16 +667,17 @@ if __name__ == "__main__":
     search_terms = [
         "Graduate Trading",
         "Junior Trading",
+        "Energy Trading",
+        "Trading Analyst",
+        "Trading Analysis",
+        "Power Trading",
     ]
     # 3) Define the locations
-    locations = [
-        "Germany",
-    ]
+    locations = ["Germany", "London"]
     # 4) Scrape the jobs
     scraper.scrape_jobs(search_terms=search_terms, locations=locations)
     # 5) Get the jobs DataFrame
     jobs_df = scraper.get_jobs_df()
-    print(jobs_df)
     # 6) Save the jobs DataFrame to Excel, current german local time
     today = dt.datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
     filename = rf"linkedin_jobs_{today.replace(':', '-')}.xlsx"
