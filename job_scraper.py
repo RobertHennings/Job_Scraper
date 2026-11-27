@@ -647,10 +647,14 @@ class LinkedInJobScraper:
                 f"Shortening job and company logo links using TinyURL."
             )
             type_tiny = pyshorteners.Shortener()
-            jobs_df["link"] = [type_tiny.tinyurl.short(li) for li in jobs_df["link"]]
-            jobs_df["company_logo_url"] = [
-                type_tiny.tinyurl.short(li) for li in jobs_df["company_logo_url"]
-            ]
+            if "link" in jobs_df.columns:
+                jobs_df["link"] = [
+                    type_tiny.tinyurl.short(li) for li in jobs_df["link"]
+                ]
+            if "company_logo_url" in jobs_df.columns:
+                jobs_df["company_logo_url"] = [
+                    type_tiny.tinyurl.short(li) for li in jobs_df["company_logo_url"]
+                ]
         job_scraper_log.info(f"Renaming columns based on provided mapping dictionary.")
         jobs_df = jobs_df.rename(columns=col_name_mapping_dict)
         return jobs_df
