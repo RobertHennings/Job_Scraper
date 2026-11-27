@@ -8527,3 +8527,79 @@ INFO:email_notifier:Trying to attach file: Job_Scraper/linkedin_jobs_2026-11-27 
 INFO:email_notifier:Starting TLS connection to SMTP server.
 INFO:email_notifier:Logging in to SMTP server.
 INFO:email_notifier:Email sent successfully.
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 56 job cards for 'Graduate+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Graduate+Trading' in 'London'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Graduate+Trading&location=London
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Graduate+Trading' in 'London'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 50 job cards for 'Junior+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Junior+Trading' in 'London'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Junior+Trading&location=London
+ERROR:job_scraper:Error scraping: Message: 
+
+INFO:job_scraper:Scraping jobs for 'Energy+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Energy+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 59 job cards for 'Energy+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Energy+Trading' in 'London'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Energy+Trading&location=London
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 61 job cards for 'Energy+Trading' in 'London'
+INFO:job_scraper:Scraping jobs for 'Trading+Analyst' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Trading+Analyst&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 59 job cards for 'Trading+Analyst' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Trading+Analyst' in 'London'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Trading+Analyst&location=London
+ERROR:job_scraper:Error scraping: Message: 
+
+INFO:job_scraper:Scraping jobs for 'Trading+Analysis' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Trading+Analysis&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Trading+Analysis' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Trading+Analysis' in 'London'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Trading+Analysis&location=London
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 60 job cards for 'Trading+Analysis' in 'London'
+INFO:job_scraper:Scraping jobs for 'Power+Trading' in 'Germany'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Power+Trading&location=Germany
+INFO:job_scraper:Inspecting URL returned soup.
+INFO:job_scraper:Found 59 job cards for 'Power+Trading' in 'Germany'
+INFO:job_scraper:Scraping jobs for 'Power+Trading' in 'London'.
+URL: https://www.linkedin.com/jobs/search/?keywords=Power+Trading&location=London
+ERROR:job_scraper:Error scraping: Message: 
+
+INFO:job_scraper:Scraping complete. Total jobs found: 524
+INFO:job_scraper:Dropping duplicates based on columns: title, company, location, date_posted, link
+INFO:job_scraper:Found 1 duplicate job listings.
+INFO:job_scraper:Dropping 1 duplicate job listings.
+INFO:job_scraper:Sorting jobs by 'date_posted_datetime' in descending order
+INFO:job_scraper:Final DataFrame shape: (523, 17)
+INFO:job_scraper:Final DataFrame shape after dropping empty columns: (523, 8)
+INFO:job_scraper:Shortening job and company logo links using TinyURL.
+INFO:job_scraper:Shortening job links.
+INFO:job_scraper:Renaming columns based on provided mapping dictionary.
+INFO:job_scraper:Saving file: linkedin_jobs_2026-11-27 15-08.xlsx under file path: Job_Scraper
+Full file path: Job_Scraper/linkedin_jobs_2026-11-27 15-08.xlsx
+INFO:job_scraper:Dropping duplicates based on columns: title, company, location, date_posted, link
+INFO:job_scraper:Found 1 duplicate job listings.
+INFO:job_scraper:Dropping 1 duplicate job listings.
+INFO:job_scraper:Sorting jobs by 'date_posted_datetime' in descending order
+INFO:job_scraper:Final DataFrame shape: (523, 17)
+INFO:job_scraper:Final DataFrame shape after dropping empty columns: (523, 8)
+INFO:job_scraper:Shortening job and company logo links using TinyURL.
+INFO:job_scraper:Shortening job links.
+INFO:job_scraper:Renaming columns based on provided mapping dictionary.
+INFO:job_scraper:Saved 524 jobs to linkedin_jobs_2026-11-27 15-08.xlsx
+INFO:email_notifier:Validated email address for sender_email: robhenn60@gmail.com
+INFO:email_notifier:Validated email address for recipient_email: robert.hennings@stu.uni-kiel.de
+INFO:email_notifier:Trying to attach file: Job_Scraper/linkedin_jobs_2026-11-27 15-08.xlsx
+INFO:email_notifier:Starting TLS connection to SMTP server.
+INFO:email_notifier:Logging in to SMTP server.
+INFO:email_notifier:Email sent successfully.
