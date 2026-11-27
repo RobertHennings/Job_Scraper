@@ -674,7 +674,9 @@ if __name__ == "__main__":
     email_body = f"""
     <html>
     <body>
-        <h1>Job Opportunities</h1>
+        <h1> Found {len(jobs_df)} Job Opportunities for {today}</h1>
+        <p>Search terms: {", ".join(search_terms)}</p>
+        <p>Locations: {", ".join(locations)}</p>
         <p>Here are the available job opportunities:</p>
         {jobs_table}
     </body>
