@@ -42,6 +42,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add --ignore-errors Job_Scraper/ *.log || true
+          git add --ignore-errors Job_Scraper_HTML/ *.log || true
           if ! git diff --quiet || ! git diff --staged --quiet; then
             git commit -m "Update scraped jobs"
             git push
