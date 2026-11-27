@@ -71,6 +71,7 @@ FIELDNAMES = [
     "description",
     "link",
 ]
+TINYURL_TIMEOUT = 100  # seconds
 # Get .env file path
 env_file_path = os.path.join(os.path.dirname(__file__), ".env")
 # Load environment variables from .env file
@@ -542,6 +543,7 @@ class LinkedInJobScraper:
             "date_posted",
             "link",
         ],
+        timeout: int = TINYURL_TIMEOUT,
     ) -> None:
         """Save scraped jobs to CSV file
 
@@ -570,6 +572,7 @@ class LinkedInJobScraper:
             col_name_mapping_dict=col_name_mapping_dict,
             drop_duplicates=drop_duplicates,
             duplicates_col_names_subset=duplicates_col_names_subset,
+            timeout=timeout,
         )
         # Select the chosen columns in the specified order before saving to CSV
         sorted_jobs_df = sorted_jobs_df.replace("N/A", pd.NA)
@@ -596,6 +599,7 @@ class LinkedInJobScraper:
             "date_posted",
             "link",
         ],
+        timeout: int = TINYURL_TIMEOUT,
     ) -> pd.DataFrame:
         """Get the scraped jobs as a pandas DataFrame.
 
@@ -646,12 +650,14 @@ class LinkedInJobScraper:
             job_scraper_log.info(
                 f"Shortening job and company logo links using TinyURL."
             )
-            type_tiny = pyshorteners.Shortener()
+            type_tiny = pyshorteners.Shortener(timeout=timeout)
             if "link" in jobs_df.columns:
+                job_scraper_log.info(f"Shortening job links.")
                 jobs_df["link"] = [
                     type_tiny.tinyurl.short(li) for li in jobs_df["link"]
                 ]
             if "company_logo_url" in jobs_df.columns:
+                job_scraper_log.info(f"Shortening company logo links.")
                 jobs_df["company_logo_url"] = [
                     type_tiny.tinyurl.short(li) for li in jobs_df["company_logo_url"]
                 ]
