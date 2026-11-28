@@ -544,18 +544,26 @@ class LinkedInJobScraper:
             "link",
         ],
         timeout: int = TINYURL_TIMEOUT,
-    ) -> None:
-        """Save scraped jobs to CSV file
+    ) -> str:
+        """Save scraped jobs to an Excel file.
 
         Args:
             file_path (str, optional): The path to the directory where the file will be saved. Defaults to the current directory.
-            filename (str, optional): The name of the CSV file to save the jobs to. Defaults to "linkedin_jobs.csv".
-            fieldnames (List[str], optional): The list of field names to include in the CSV file. Defaults to the predefined field names.
+            filename (str, optional): The name of the Excel file to save the jobs to. Defaults to a timestamped name.
+            fieldnames (List[str], optional): The list of field names to include in the file. Defaults to the predefined field names.
             sort_for_newest (bool, optional): Whether to sort the jobs by date posted in descending order. Defaults to True.
+            shorten_links (bool, optional): Whether to shorten URLs with TinyURL.
+            drop_duplicates (bool, optional): Whether to drop duplicates.
+            duplicates_col_names_subset (List[str], optional): Columns for duplicate detection.
+            timeout (int, optional): TinyURL timeout in seconds.
+
+        Returns:
+            str: The full file path of the saved Excel file.
         """
         if not self.jobs:
             job_scraper_log.error("No jobs found")
-            return
+            return ""
+        os.makedirs(file_path, exist_ok=True)
         full_file_path = os.path.join(file_path, filename) if file_path else filename
         job_scraper_log.info(
             f"Saving file: {filename} under file path: {file_path}\nFull file path: {full_file_path}"
@@ -582,7 +590,196 @@ class LinkedInJobScraper:
         # sorted_jobs_df.to_csv(full_file_path, index=False, encoding="utf-8")
         # save to excel file
         sorted_jobs_df.to_excel(full_file_path, index=False)
-        job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {filename}")
+        job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {full_file_path}")
+        return full_file_path
+
+    def _save_html(
+        self,
+        file_path: str,
+        filename: str = f"linkedin_jobs_{dt.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.html",
+        today: str = "",
+        search_terms: List[str] = [],
+        locations: List[str] = [],
+        fieldnames: List[str] = FIELDNAMES,
+        sort_for_newest: bool = True,
+        col_name_mapping_dict: Dict[str, str] = COL_NAME_MAPPING_DICT,
+        shorten_links: bool = True,
+        drop_duplicates: bool = True,
+        duplicates_col_names_subset: List[str] = [
+            "title",
+            "company",
+            "location",
+            "date_posted",
+            "link",
+        ],
+        timeout: int = TINYURL_TIMEOUT,
+    ) -> str:
+        """Save scraped jobs to an interactive HTML file with search and filter controls.
+
+        Args:
+            file_path (str): The path to the directory where the file will be saved.
+            filename (str, optional): The name of the HTML file. Defaults to a timestamped name.
+            today (str): The current date string (German local time) for display.
+            search_terms (List[str]): The search terms used for scraping.
+            locations (List[str]): The locations used for scraping.
+            fieldnames (List[str], optional): The list of field names to include.
+            sort_for_newest (bool, optional): Whether to sort by date posted descending.
+            col_name_mapping_dict (Dict[str, str], optional): Column name mapping.
+            shorten_links (bool, optional): Whether to shorten URLs with TinyURL.
+            drop_duplicates (bool, optional): Whether to drop duplicates.
+            duplicates_col_names_subset (List[str], optional): Columns for duplicate detection.
+            timeout (int, optional): TinyURL timeout in seconds.
+
+        Returns:
+            str: The full file path of the saved HTML file.
+        """
+        if not self.jobs:
+            job_scraper_log.error("No jobs found")
+            return ""
+        os.makedirs(file_path, exist_ok=True)
+        full_file_path = os.path.join(file_path, filename)
+        job_scraper_log.info(
+            f"Saving HTML file: {filename} under file path: {file_path}\nFull file path: {full_file_path}"
+        )
+
+        jobs_df = self.get_jobs_df(
+            sort_for_newest=sort_for_newest,
+            fieldnames=fieldnames,
+            shorten_links=shorten_links,
+            col_name_mapping_dict=col_name_mapping_dict,
+            drop_duplicates=drop_duplicates,
+            duplicates_col_names_subset=duplicates_col_names_subset,
+            timeout=timeout,
+        )
+        jobs_table = jobs_df.to_html(index=False)
+
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Job Opportunities - {today}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 20px; color: #222; }}
+        .controls {{ display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; background: #f4f5f7; padding: 15px; border-radius: 8px; }}
+        .control-group {{ display: flex; flex-direction: column; min-width: 180px; }}
+        label {{ font-size: 12px; font-weight: bold; margin-bottom: 4px; }}
+        input, select {{ padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }}
+        table {{ border-collapse: collapse; width: 100%; font-size: 14px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #eee; cursor: pointer; }}
+        tr:nth-child(even) {{ background-color: #fafafa; }}
+        .count {{ font-weight: bold; margin-bottom: 10px; }}
+    </style>
+</head>
+<body>
+    <h1>Job Opportunities ({today})</h1>
+    <p><strong>Search terms:</strong> {", ".join(search_terms)} | <strong>Locations:</strong> {", ".join(locations)}</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="globalSearch">Keyword Search</label>
+            <input type="text" id="globalSearch" placeholder="Type to filter...">
+        </div>
+        <div id="dropdownContainer" style="display: flex; flex-wrap: wrap; gap: 15px;"></div>
+    </div>
+
+    <div class="count" id="rowCount">JavaScript not active (open in Safari)</div>
+
+    {jobs_table}
+
+    <script>
+        (function() {{
+            const table = document.querySelector("table.dataframe");
+            if (!table) return;
+
+            const allRows = Array.from(table.querySelectorAll("tr"));
+            if (allRows.length < 2) return;
+
+            const headers = Array.from(allRows[0].querySelectorAll("th, td"));
+            const dataRows = allRows.slice(1);
+            const dropdownContainer = document.getElementById("dropdownContainer");
+            const globalSearch = document.getElementById("globalSearch");
+            const rowCount = document.getElementById("rowCount");
+
+            console.log("Detected columns:", headers.map(h => h.textContent.trim()));
+
+            const targetCols = ["search term", "search location", "company name"];
+            const activeFilters = {{}};
+
+            headers.forEach((th, colIndex) => {{
+                const colName = th.textContent.trim();
+                if (targetCols.includes(colName.toLowerCase())) {{
+                    const values = new Set();
+                    dataRows.forEach(row => {{
+                        const cellText = row.cells[colIndex]?.textContent.trim();
+                        if (cellText) values.add(cellText);
+                    }});
+
+                    const group = document.createElement("div");
+                    group.className = "control-group";
+
+                    const label = document.createElement("label");
+                    label.textContent = colName;
+
+                    const select = document.createElement("select");
+                    select.innerHTML = `<option value="">All (${{values.size}})</option>`;
+                    Array.from(values).sort().forEach(val => {{
+                        const opt = document.createElement("option");
+                        opt.value = val;
+                        opt.textContent = val;
+                        select.appendChild(opt);
+                    }});
+
+                    select.addEventListener("change", () => {{
+                        activeFilters[colIndex] = select.value;
+                        filterTable();
+                    }});
+
+                    group.appendChild(label);
+                    group.appendChild(select);
+                    dropdownContainer.appendChild(group);
+                }}
+            }});
+
+            function filterTable() {{
+                const query = globalSearch.value.toLowerCase();
+                let visibleCount = 0;
+
+                dataRows.forEach(row => {{
+                    let matchesDropdowns = true;
+                    for (const [colIdx, filterVal] of Object.entries(activeFilters)) {{
+                        if (filterVal && row.cells[colIdx]?.textContent.trim() !== filterVal) {{
+                            matchesDropdowns = false;
+                            break;
+                        }}
+                    }}
+
+                    const matchesSearch = !query || row.textContent.toLowerCase().includes(query);
+
+                    if (matchesDropdowns && matchesSearch) {{
+                        row.style.display = "";
+                        visibleCount++;
+                    }} else {{
+                        row.style.display = "none";
+                    }}
+                }});
+
+                rowCount.textContent = `Showing ${{visibleCount}} of ${{dataRows.length}} jobs`;
+            }}
+
+            globalSearch.addEventListener("input", filterTable);
+            filterTable();
+        }})();
+    </script>
+</body>
+</html>
+"""
+
+        with open(full_file_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        job_scraper_log.info(f"Saved {len(self.jobs)} jobs to {full_file_path}")
+        return full_file_path
 
     def get_jobs_df(
         self,
@@ -691,10 +888,8 @@ if __name__ == "__main__":
     # 6) Save the jobs DataFrame to Excel, current german local time
     today = dt.datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
     filename = rf"linkedin_jobs_{today.replace(':', '-')}.xlsx"
-    file_path = r"Job_Scraper"
-    os.makedirs(file_path, exist_ok=True)
-    scraper._save(
-        file_path=file_path,
+    excel_file_path = scraper._save(
+        file_path=r"Job_Scraper",
         filename=filename,
     )
     # 7) Close the scraper
@@ -730,136 +925,15 @@ if __name__ == "__main__":
     </html>
     """
 
-    html_content = f"""<!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="utf-8">
-        <title>Job Opportunities - {today}</title>
-        <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 20px; color: #222; }}
-            .controls {{ display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; background: #f4f5f7; padding: 15px; border-radius: 8px; }}
-            .control-group {{ display: flex; flex-direction: column; min-width: 180px; }}
-            label {{ font-size: 12px; font-weight: bold; margin-bottom: 4px; }}
-            input, select {{ padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }}
-            table {{ border-collapse: collapse; width: 100%; font-size: 14px; }}
-            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-            th {{ background-color: #eee; cursor: pointer; }}
-            tr:nth-child(even) {{ background-color: #fafafa; }}
-            .count {{ font-weight: bold; margin-bottom: 10px; }}
-        </style>
-    </head>
-    <body>
-        <h1>Job Opportunities ({today})</h1>
-        <p><strong>Search terms:</strong> {", ".join(search_terms)} | <strong>Locations:</strong> {", ".join(locations)}</p>
-
-        <div class="controls">
-            <div class="control-group">
-                <label for="globalSearch">Keyword Search</label>
-                <input type="text" id="globalSearch" placeholder="Type to filter...">
-            </div>
-            <div id="dropdownContainer" style="display: flex; flex-wrap: wrap; gap: 15px;"></div>
-        </div>
-
-        <div class="count" id="rowCount">JavaScript not active (open in Safari)</div>
-
-        {jobs_table}
-
-        <script>
-            (function() {{
-                const table = document.querySelector("table.dataframe");
-                if (!table) return;
-
-                const allRows = Array.from(table.querySelectorAll("tr"));
-                if (allRows.length < 2) return;
-
-                const headers = Array.from(allRows[0].querySelectorAll("th, td"));
-                const dataRows = allRows.slice(1);
-                const dropdownContainer = document.getElementById("dropdownContainer");
-                const globalSearch = document.getElementById("globalSearch");
-                const rowCount = document.getElementById("rowCount");
-
-                // Prints actual column names to browser console for easy debugging
-                console.log("Detected columns:", headers.map(h => h.textContent.trim()));
-
-                const targetCols = ["search term", "search location", "company name"];
-                const activeFilters = {{}};
-
-                headers.forEach((th, colIndex) => {{
-                    const colName = th.textContent.trim();
-                    if (targetCols.includes(colName.toLowerCase())) {{
-                        const values = new Set();
-                        dataRows.forEach(row => {{
-                            const cellText = row.cells[colIndex]?.textContent.trim();
-                            if (cellText) values.add(cellText);
-                        }});
-
-                        const group = document.createElement("div");
-                        group.className = "control-group";
-
-                        const label = document.createElement("label");
-                        label.textContent = colName;
-
-                        const select = document.createElement("select");
-                        select.innerHTML = `<option value="">All (${{values.size}})</option>`;
-                        Array.from(values).sort().forEach(val => {{
-                            const opt = document.createElement("option");
-                            opt.value = val;
-                            opt.textContent = val;
-                            select.appendChild(opt);
-                        }});
-
-                        select.addEventListener("change", () => {{
-                            activeFilters[colIndex] = select.value;
-                            filterTable();
-                        }});
-
-                        group.appendChild(label);
-                        group.appendChild(select);
-                        dropdownContainer.appendChild(group);
-                    }}
-                }});
-
-                function filterTable() {{
-                    const query = globalSearch.value.toLowerCase();
-                    let visibleCount = 0;
-
-                    dataRows.forEach(row => {{
-                        let matchesDropdowns = true;
-                        for (const [colIdx, filterVal] of Object.entries(activeFilters)) {{
-                            if (filterVal && row.cells[colIdx]?.textContent.trim() !== filterVal) {{
-                                matchesDropdowns = false;
-                                break;
-                            }}
-                        }}
-
-                        const matchesSearch = !query || row.textContent.toLowerCase().includes(query);
-
-                        if (matchesDropdowns && matchesSearch) {{
-                            row.style.display = "";
-                            visibleCount++;
-                        }} else {{
-                            row.style.display = "none";
-                        }}
-                    }});
-
-                    rowCount.textContent = `Showing ${{visibleCount}} of ${{dataRows.length}} jobs`;
-                }}
-
-                globalSearch.addEventListener("input", filterTable);
-                filterTable();
-            }})();
-        </script>
-    </body>
-    </html>
-    """
-    # 3. Save to a file to attach to your email
+    # 9.5) Save the jobs DataFrame to an interactive HTML file
     filename_html = rf"linkedin_jobs_{today.replace(':', '-')}.html"
-    file_path_html = r"Job_Scraper_HTML"
-    os.makedirs(file_path_html, exist_ok=True)
-    full_file_path = os.path.join(file_path_html, filename_html)
-
-    with open(full_file_path, "w", encoding="utf-8") as f:
-        f.write(html_content)
+    html_file_path = scraper._save_html(
+        file_path=r"Job_Scraper_HTML",
+        filename=filename_html,
+        today=today,
+        search_terms=search_terms,
+        locations=locations,
+    )
 
     # 10) Send the email
     notifier.send_email(
@@ -867,7 +941,7 @@ if __name__ == "__main__":
         subject=f"LinkedIn Job Listings for day: {today}",
         body=email_body,
         attachments=[
-            os.path.join(file_path, filename),
-            os.path.join(file_path_html, filename_html),
+            excel_file_path,
+            html_file_path,
         ],
     )

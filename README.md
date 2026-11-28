@@ -1,6 +1,6 @@
-# LinkedIn Job Scraper with Excel Export and Email Notifications
+# LinkedIn Job Scraper with Excel & HTML Export and Email Notifications
 
-An automated job scraper that searches LinkedIn for defined search terms in the specified locations, saves the results to Excel files (with shortened links), and emails a daily summary — all running automatically via GitHub Actions.
+An automated job scraper that searches LinkedIn for defined search terms in the specified locations, saves the results to both Excel and interactive HTML files (with shortened links), and emails a daily summary with both files as attachments — all running automatically via GitHub Actions.
 
 ## To trigger the cron job and the execution of the script
 
@@ -17,7 +17,8 @@ A POST request is sent via a configured cron schedule on: <https://console.cron-
   - [Running Locally](#running-locally)
   - [Automated Scheduling (GitHub Actions)](#automated-scheduling-github-actions)
 - [Output Data](#output-data)
-- [GitHub Actions Setup](#github-actions-setup)
+"- [Interactive HTML Report](#interactive-html-report)
+- [GitHub Actions Setup](#github-actions-setup)"
 - [Troubleshooting](#troubleshooting)
 - [License](#license)
 
@@ -36,8 +37,9 @@ A POST request is sent via a configured cron schedule on: <https://console.cron-
   - Company logo URL and job link
   - Full job description (when individual listing scraping is enabled)
 - **Excel export** with professional column headers and shortened URLs (using TinyURL)
-- **Date-sorted output** written to timestamped Excel files
-- **Email Notifier** that sends an HTML summary table with the scraped jobs as an Excel attachment
+- **Interactive HTML export** with a keyword search bar and dropdown filters for search term, search location, and company name
+- **Date-sorted output** written to timestamped Excel and HTML files
+- **Email Notifier** that sends an HTML summary table with both the Excel file and interactive HTML file as attachments
 - **GitHub Actions workflow** for fully automated scheduled runs (every 30 minutes during business hours)
 - **Automatic commit/push** of updated Excel and log files back to the repository
 - **Headless Chrome** execution, suitable for CI/CD environments
@@ -53,6 +55,7 @@ job_scraper/
 │       └── daily-linkedin-scraper.yml    # GitHub Actions workflow
 
 ├── Job_Scraper/                            # Output directory for scraped Excel files
+├── Job_Scraper_HTML/                       # Output directory for interactive HTML reports
 ├── email_notifier.py                       # Email notification module
 ├── email_notifier.log                      # Email notifier log output
 ├── job_scraper.py                          # Main scraper entry point
@@ -143,8 +146,9 @@ This will:
 2. Scrape LinkedIn for the configured search terms and locations
 
 3. Save results to `Job_Scraper/linkedin_jobs_<YYYY-MM-DD_HH-MM>.xlsx`
-4. Send an email summary with the job listings as an Excel attachment
-5. Log all activity to `job_scraper.log` and `email_notifier.log`
+4. Save an interactive HTML report to `Job_Scraper_HTML/linkedin_jobs_<YYYY-MM-DD_HH-MM>.html` (with keyword search and filter dropdowns)
+5. Send an email summary with both the Excel file and interactive HTML file as attachments
+6. Log all activity to `job_scraper.log` and `email_notifier.log`
 
 The included workflow (`.github/workflows/daily-linkedin-scraper.yml`) runs the scraper **every 30 minutes during business hours** (7-9 AM German time, UTC+2). It:
 
@@ -153,13 +157,13 @@ The included workflow (`.github/workflows/daily-linkedin-scraper.yml`) runs the 
 3. Installs Chrome
 4. Installs Python dependencies
 5. Runs the scraper with GitHub Secrets as environment variables
-6. Commits and pushes any updated Excel/log files back to the repository
+6. Commits and pushes any updated Excel, HTML, and log files back to the repository
 
 ---
 
 ## Output Data
 
-Scraped results are saved as Excel files containing the following fields:
+Scraped results are saved as Excel files and interactive HTML reports. The data in both formats contains the following fields:
 
 | Column                  | Description                               |
 |-------------------------|-------------------------------------------|
@@ -179,7 +183,30 @@ Scraped results are saved as Excel files containing the following fields:
 | `Num Applicants`        | Number of applicants                      |
 | `Description`           | Full job description (if requested)       |
 | `Company Logo URL`      | Shortened URL to the company logo         |
-| `Job Link`              | Shortened direct URL to the LinkedIn job  |
+| `Job Link`              | "Shortened direct URL to the LinkedIn job  |
+
+---
+
+## Interactive HTML Report
+
+In addition to the Excel file, the scraper generates a self-contained interactive HTML report at `Job_Scraper_HTML/linkedin_jobs_<timestamp>.html`.
+
+### Features
+
+- **Keyword search bar** — type any keyword to filter jobs across all columns (title, company, location, skills, etc.)
+- **Dropdown filters** — narrow results by search term, search location, or company name
+- **Live row counter** — shows how many jobs match your current filters out of the total
+- **Zero dependencies** — fully self-contained (HTML + CSS + vanilla JavaScript), works offline in any modern browser
+
+### Use Case
+
+Open the HTML file in your browser and use the search bar and filters to quickly find jobs matching specific criteria. For example:
+
+1. Select a company from the Company Name dropdown
+2. Type a skill like "Python" in the search bar
+3. See the updated count of matching jobs
+
+This makes it easy to quickly triage the daily job listings without opening Excel.
 
 ---
 
